@@ -15,3 +15,5 @@ def load_config():
             CONFIG.update(json.load(f))
     except Exception as e:
         print("Failed to parse the config!")
+
+load_config()
