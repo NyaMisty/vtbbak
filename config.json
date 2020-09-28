@@ -1,7 +1,7 @@
 {
-    "cookie": "",
+    "cookie": "CURRENT_QUALITY=120; sid=a0x9gb9y; DedeUserID=11956894; DedeUserID__ckMd5=48a8d95d252deb98; LIVE_PLAYER_TYPE=2; buvid3=51BF04FC-B2DB-48F9-8C74-D1F619623F6653914infoc; Hm_lvt_8a6e55dbd2870f0f5bc9194cddf32a02=1593643252; _uuid=4F247421-12AD-7995-001F-CA087F8959D677860infoc; PVID=1; SESSDATA=25f19d9b%2C1613979663%2C7a4ce*81; bili_jct=7b021e16b37b8083d05ea584af900e6e; blackside_state=1; CURRENT_FNVAL=80",
     "prefer_cdn": "upos-sz-mirrorkodo.bilivideo.com",
     "workdir": "/mnt/nfs",
-    "redis": "redis://172.23.115.120",
-    "amqp": "pyamqp://guest:guest@172.23.115.120:5672"
+    "redis": "redis://sznode.misty.moe",
+    "amqp": "pyamqp://guest:guest@sznode.misty.moe:5672"
 }
