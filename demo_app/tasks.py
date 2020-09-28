@@ -142,9 +142,9 @@ def download_video(self, dir, bvid, pn, cid, desc):
         vdownload.update()
         adownload.update()
         if vdownload.is_active or vdownload.is_waiting:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading video')
+            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading video, speed: %s' % vdownload.download_speed_string())
         else:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading audio')
+            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading audio, speed: %s' % adownload.download_speed_string())
             if not (adownload.is_active or adownload.is_waiting):
                 logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
                 return ("Successfully" if vdownload.is_complete and adownload.is_complete else "failed to") \

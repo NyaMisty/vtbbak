@@ -25,7 +25,7 @@ SECRET_KEY = '$3bx0bb*vf%_v$c%)#kjg-28az1udxrx!j3+nyp@b8hb*2+pi#'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 CELERY_ALWAYS_EAGER = False
 
