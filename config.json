@@ -3,5 +3,5 @@
     "prefer_cdn": "upos-sz-mirrorkodo.bilivideo.com",
     "workdir": "/mnt/nfs",
     "redis": "redis://sznode.misty.moe:10030",
-    "amqp": "pyamqp://guest:guest@sznode.misty.moe:10029"k
+    "amqp": "pyamqp://guest:guest@sznode.misty.moe:10029"
 }
