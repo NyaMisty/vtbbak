@@ -19,8 +19,8 @@
     <body>
         {% load static %}
         <div class="bg-dark text-white text-center">
-            <h1>Celery-Progress Demo</h1>
-            <p>Utilising NASA's <i>Astonomy Image of the Day</i> API</p> 
+            <h1>VTB video backup</h1>
+            <p></p>
         </div>
         
         <div class="container-fluid">
@@ -50,26 +50,38 @@
         if(progress.current == 0 && progress.total == 100){
             progressMessage = ""
         } else {
-            if(progress.description && progress.description.url){
+            /*if(progress.description && progress.description.url){
                 var nasaImageElement = document.getElementById(progressBarElement.id + "-image");
                 nasaImageElement.src = progress.description.url
                 var nasaImageLinkElement = document.getElementById(progressBarElement.id + "-image-link");
                 nasaImageLinkElement.href = progress.description.url
                 nasaImageLinkElement.innerHTML = progress.description.date + " | " + progress.description.title
-            }
+            }*/
 
-            taskNumber = parseInt(progress.current)+1
-            taskPercentage = taskNumber / progress.total * 100
+            taskCur = parseInt(progress.current)
+            taskPercentage = taskCur / progress.total * 100
 
             progressBarElement.style.backgroundColor = "#68a9ef"
             progressBarElement.style.width = taskPercentage + "%"
             progressBarMessageElement.className = "alert alert-info"
-            progressMessage = "Currently fetching image " + taskNumber + " of " + progress.total
+            progressMessage = taskPercentage.toFixed(2) + "%: " + progress.description
         }
 
         progressBarMessageElement.innerHTML = (
             progressMessage
         );
+    }
+    function customSuccess(progressBarElement, progressBarMessageElement, result) {
+        progressBarElement.style.backgroundColor = '#76ce60';
+        if (Array.isArray(result)) {
+            progressBarMessageElement.innerHTML = (
+                'succ: ['  + result[0] + ", ...]"
+            );
+        } else {
+            progressBarMessageElement.innerHTML = (
+                'succ: '  + result
+            );
+        }
     }
 </script>
 
@@ -80,6 +92,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             var progressUrl = "{% url 'celery_progress:task_status' value %}";
             CeleryProgressBar.initProgressBar(progressUrl, {
+                onSuccess: customSuccess,
                 onProgress: customProgress,
                 progressBarId: "progress-bar{{ key }}",
                 progressBarMessageId: "progress-bar{{ key }}-message"

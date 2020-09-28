@@ -4,10 +4,11 @@ from celery import Celery
 from decouple import config
 import django
 import os
+from config import CONFIG
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'demo_project.settings')
 
-app = Celery('demo_project', backend='redis://localhost', broker='pyamqp://')
+app = Celery('demo_project', backend=CONFIG['redis'], broker=CONFIG['amqp'])
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
