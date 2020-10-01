@@ -127,13 +127,13 @@ def download_video(self, dir, bvid, pn, cid, desc):
     ])
     vopt = aria2.get_global_options()
     vopt.dir = dir
-    vopt.index_out = '1=' + "%s-P%d-%s-v.m4s" % (bvid, pn, cid)
+    vopt.out = "%s-P%d-%s-v.m4s" % (bvid, pn, cid)
     vopt.header = headers
     vdownload = aria2.add_uris([videoUrl], vopt)
 
     aopt = aria2.get_global_options()
     aopt.dir = dir
-    aopt.index_out = '1=' + "%s-P%d-%s-a.m4s" % (bvid, pn, cid)
+    aopt.out = "%s-P%d-%s-a.m4s" % (bvid, pn, cid)
     aopt.header = headers
     adownload = aria2.add_uris([audioUrl], aopt)
 
