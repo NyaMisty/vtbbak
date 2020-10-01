@@ -86,6 +86,7 @@ def process_video(self, dir, bvid):
 
 @shared_task(bind=True)
 def download_video(self, dir, bvid, pn, cid, desc):
+    workdir = os.path.join(dir, "P%d" % pn)
     progress_recorder = ProgressRecorder(self)
     videodesc = ' %s P%d %s, cid: %s' % (bvid, pn, desc, cid)
     def report_progress(cur, msg):
@@ -126,13 +127,13 @@ def download_video(self, dir, bvid, pn, cid, desc):
         'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
     ])
     vopt = aria2.get_global_options()
-    vopt.dir = dir
+    vopt.dir = workdir
     vopt.out = "%s-P%d-%s-v.m4s" % (bvid, pn, cid)
     vopt.header = headers
     vdownload = aria2.add_uris([videoUrl], vopt)
 
     aopt = aria2.get_global_options()
-    aopt.dir = dir
+    aopt.dir = workdir
     aopt.out = "%s-P%d-%s-a.m4s" % (bvid, pn, cid)
     aopt.header = headers
     adownload = aria2.add_uris([audioUrl], aopt)
