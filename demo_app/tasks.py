@@ -104,7 +104,6 @@ def download_video(self, dir, bvid, pn, cid, desc):
         time.sleep(20)
 
     videoUrl = audioUrl = None
-    danmakuUrl = 'http://comment.bilibili.com/%s.xml' % cid
     for i in range(10):
         try:
             report_progress(0, 'trying to get playurl for')
@@ -130,6 +129,18 @@ def download_video(self, dir, bvid, pn, cid, desc):
     if not videoUrl:
         raise Exception("failed to retrive videoUrl!!")
 
+    danmakuUrl = 'http://comment.bilibili.com/%s.xml' % cid
+    for i in range(5):
+        try:
+            r = sess.get(danmakuUrl)
+            if not r.content.startswith("<"):
+                continue
+            with open(os.path.join(workdir, "%s-P%d-%s-danmaku.xml" % (bvid, pn, cid)), "wb") as f:
+                f.write(r.content)
+            break
+        except Exception as e:
+            pass
+
     headers = '\n'.join([
         'Referer: https://www.bilibili.com/video/%s' % (bvid),
         'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36',
@@ -150,11 +161,13 @@ def download_video(self, dir, bvid, pn, cid, desc):
     aopt.header = headers
     adownload = aria2.add_uris([audioUrl], aopt)
 
+    '''
     dopt = aria2.get_global_options()
     dopt.dir = workdir
     dopt.out = "%s-P%d-%s-danmaku.xml" % (bvid, pn, cid)
     dopt.header = headers
     ddownload = aria2.add_uris([danmakuUrl], dopt)
+    '''
 
     while True:
         time.sleep(1)
@@ -167,6 +180,7 @@ def download_video(self, dir, bvid, pn, cid, desc):
             else:
                 report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading audio, speed: %s' % adownload.download_speed_string())
                 if not (adownload.is_active or adownload.is_waiting):
+                    '''
                     report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01,
                                     'downloading danmaku, speed: %s' % ddownload.download_speed_string())
                     if not (ddownload.is_active or ddownload.is_waiting):
@@ -175,6 +189,12 @@ def download_video(self, dir, bvid, pn, cid, desc):
                             return "Successfully" + " download" + videodesc # else "failed to"
                         else:
                             raise Aria2Exception("Aria2 failed to download something, status: %s %s %s" % (vdownload.is_complete, adownload.is_complete, ddownload.is_complete))
+                     '''
+                    logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
+                    if vdownload.is_complete and adownload.is_complete:
+                        return "Successfully" + " download" + videodesc  # else "failed to"
+                    else:
+                        raise Aria2Exception("Aria2 failed to download something, status: %s %s" % (vdownload.is_complete, adownload.is_complete))
         except Aria2Exception:
             raise
         except Exception as e:
