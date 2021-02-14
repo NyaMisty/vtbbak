@@ -114,11 +114,11 @@ def download_video(self, dir, bvid, pn, cid, desc):
                                                description='error during  %s P%d, cid: %s' % (bvid, pn, cid))
                 time.sleep(60)
                 continue
-            videoUrl = r.json()['data']['dash']['video'][0]['baseUrl']
-            audioUrl = r.json()['data']['dash']['audio'][0]['baseUrl']
+            videoUrl = r.json()['data']['dash']['video'][0]['baseUrl'].replace("https://", "http://")
+            audioUrl = r.json()['data']['dash']['audio'][0]['baseUrl'].replace("https://", "http://")
             if videoUrl.startswith('http://upos-sz-mirror'):
-                #videoUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'] , videoUrl, 1)
-                #audioUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'], audioUrl, 1)
+                videoUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'] , videoUrl, 1)
+                audioUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'], audioUrl, 1)
                 break
             else:
                 logger.info("not receiving upos cdn, got %s instead for %s P%d cid %s" % (videoUrl, bvid, pn, cid))
