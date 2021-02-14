@@ -89,8 +89,10 @@ def process_video(self, dir, bvid):
         download_tasks.append(task)
     return [c.id for c in download_tasks]
 
+class Aria2Exception(Exception):
+    pass
 
-@shared_task(bind=True)
+@shared_task(bind=True, autoretry_for=(Aria2Exception, ))
 def download_video(self, dir, bvid, pn, cid, desc):
     workdir = os.path.join(dir, "P%d" % pn)
     progress_recorder = ProgressRecorder(self)
@@ -104,22 +106,25 @@ def download_video(self, dir, bvid, pn, cid, desc):
     videoUrl = audioUrl = None
     danmakuUrl = 'http://comment.bilibili.com/%s.xml' % cid
     for i in range(10):
-        report_progress(0, 'trying to get playurl for')
-        r = sess.get("https://api.bilibili.com/x/player/playurl?cid=%s&bvid=%s&qn=116&type=&otype=json&fourk=1&fnver=0&fnval=80" % (cid, bvid))
-        if r.json()['code'] != 0:
-            logger.warn("failed to retrive playurl for %s P%d cid %s" % (bvid, pn, cid))
-            progress_recorder.set_progress(0, 100,
-                                           description='error during  %s P%d, cid: %s' % (bvid, pn, cid))
-            time.sleep(60)
-            continue
-        videoUrl = r.json()['data']['dash']['video'][0]['baseUrl']
-        audioUrl = r.json()['data']['dash']['audio'][0]['baseUrl']
-        if videoUrl.startswith('http://upos-sz-mirror'):
-            videoUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'] , videoUrl, 1)
-            audioUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'], audioUrl, 1)
-            break
-        else:
-            logger.info("not receiving upos cdn, got %s instead for %s P%d cid %s" % (videoUrl, bvid, pn, cid))
+        try:
+            report_progress(0, 'trying to get playurl for')
+            r = sess.get("https://api.bilibili.com/x/player/playurl?cid=%s&bvid=%s&qn=116&type=&otype=json&fourk=1&fnver=0&fnval=80" % (cid, bvid))
+            if r.json()['code'] != 0:
+                logger.warn("failed to retrive playurl for %s P%d cid %s" % (bvid, pn, cid))
+                progress_recorder.set_progress(0, 100,
+                                               description='error during  %s P%d, cid: %s' % (bvid, pn, cid))
+                time.sleep(60)
+                continue
+            videoUrl = r.json()['data']['dash']['video'][0]['baseUrl']
+            audioUrl = r.json()['data']['dash']['audio'][0]['baseUrl']
+            if videoUrl.startswith('http://upos-sz-mirror'):
+                videoUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'] , videoUrl, 1)
+                audioUrl, _ = re.subn(r'upos-sz-mirror([a-z0-9]+?).bilivideo.com', CONFIG['prefer_cdn'], audioUrl, 1)
+                break
+            else:
+                logger.info("not receiving upos cdn, got %s instead for %s P%d cid %s" % (videoUrl, bvid, pn, cid))
+        except Exception as e:
+            pass
         time.sleep(2)
 
     if not videoUrl:
@@ -130,7 +135,7 @@ def download_video(self, dir, bvid, pn, cid, desc):
         'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36',
         'Origin: https://www.bilibili.com',
         'Accept: */*',
-        'Accept-Encoding: gzip, deflate, br',
+        #'Accept-Encoding: gzip, deflate, br',
         'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
     ])
     vopt = aria2.get_global_options()
@@ -153,17 +158,24 @@ def download_video(self, dir, bvid, pn, cid, desc):
 
     while True:
         time.sleep(1)
-        vdownload.update()
-        adownload.update()
-        ddownload.update()
-        if vdownload.is_active or vdownload.is_waiting:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading video, speed: %s' % vdownload.download_speed_string())
-        else:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading audio, speed: %s' % adownload.download_speed_string())
-            if not (adownload.is_active or adownload.is_waiting):
-                report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01,
-                                'downloading danmaku, speed: %s' % ddownload.download_speed_string())
-                if not (ddownload.is_active or ddownload.is_waiting):
-                    logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
-                    return ("Successfully" if vdownload.is_complete and adownload.is_complete else "failed to") \
-                                 + " download" + videodesc
+        try:
+            vdownload.update()
+            adownload.update()
+            ddownload.update()
+            if vdownload.is_active or vdownload.is_waiting:
+                report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading video, speed: %s' % vdownload.download_speed_string())
+            else:
+                report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading audio, speed: %s' % adownload.download_speed_string())
+                if not (adownload.is_active or adownload.is_waiting):
+                    report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01,
+                                    'downloading danmaku, speed: %s' % ddownload.download_speed_string())
+                    if not (ddownload.is_active or ddownload.is_waiting):
+                        logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
+                        if vdownload.is_complete and adownload.is_complete and ddownload.is_complete:
+                            return "Successfully" + " download" + videodesc # else "failed to"
+                        else:
+                            raise Aria2Exception("Aria2 failed to download something, status: %s %s %s" % (vdownload.is_complete, adownload.is_complete, ddownload.is_complete))
+        except Aria2Exception:
+            raise
+        except Exception as e:
+            raise Aria2Exception("Failed to query to aria2 because: %s" % e)
