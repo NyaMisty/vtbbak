@@ -4,8 +4,7 @@ ENV NFSMNT ""
 
 WORKDIR /app
 
-RUN apt update
-RUN apt install -y nfs-common aria2 python3 python3-pip
+RUN apt update && apt install -y nfs-common aria2 python3 python3-pip && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
 RUN pip3 install -r /app/requirements.txt

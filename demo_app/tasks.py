@@ -71,10 +71,16 @@ def process_video(self, dir, bvid):
     if r.status_code != 200:
         raise Exception("get video reply %s failed with status %d", bvid, r.status_code)
     replytext = r.text
+
+    pic = sess.get(meta['data']['View']['pic']).content
+
     with open(os.path.join(videopath, "meta.json"), 'w') as f:
         f.write(metatext)
     with open(os.path.join(videopath, "reply.json"), 'w') as f:
         f.write(replytext)
+    with open(os.path.join(videopath, "pic.jpg"), 'wb') as f:
+        f.write(pic)
+
 
     download_tasks = []
     title = meta['data']['View']['title']
@@ -96,6 +102,7 @@ def download_video(self, dir, bvid, pn, cid, desc):
         time.sleep(20)
 
     videoUrl = audioUrl = None
+    danmakuUrl = 'http://comment.bilibili.com/%s.xml' % cid
     for i in range(10):
         report_progress(0, 'trying to get playurl for')
         r = sess.get("https://api.bilibili.com/x/player/playurl?cid=%s&bvid=%s&qn=116&type=&otype=json&fourk=1&fnver=0&fnval=80" % (cid, bvid))
@@ -138,15 +145,25 @@ def download_video(self, dir, bvid, pn, cid, desc):
     aopt.header = headers
     adownload = aria2.add_uris([audioUrl], aopt)
 
+    dopt = aria2.get_global_options()
+    dopt.dir = workdir
+    dopt.out = "%s-P%d-%s-danmaku.xml" % (bvid, pn, cid)
+    dopt.header = headers
+    ddownload = aria2.add_uris([danmakuUrl], dopt)
+
     while True:
         time.sleep(1)
         vdownload.update()
         adownload.update()
+        ddownload.update()
         if vdownload.is_active or vdownload.is_waiting:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading video, speed: %s' % vdownload.download_speed_string())
+            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading video, speed: %s' % vdownload.download_speed_string())
         else:
-            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1, 'downloading audio, speed: %s' % adownload.download_speed_string())
+            report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01, 'downloading audio, speed: %s' % adownload.download_speed_string())
             if not (adownload.is_active or adownload.is_waiting):
-                logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
-                return ("Successfully" if vdownload.is_complete and adownload.is_complete else "failed to") \
-                             + " download" + videodesc
+                report_progress(vdownload.progress * 0.9 + adownload.progress * 0.1 - 0.01,
+                                'downloading danmaku, speed: %s' % ddownload.download_speed_string())
+                if not (ddownload.is_active or ddownload.is_waiting):
+                    logger.info("finished downloading %s P%d cid %s" % (bvid, pn, cid))
+                    return ("Successfully" if vdownload.is_complete and adownload.is_complete else "failed to") \
+                                 + " download" + videodesc
