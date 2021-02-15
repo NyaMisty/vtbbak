@@ -95,6 +95,9 @@ class Aria2Exception(Exception):
 @shared_task(bind=True, autoretry_for=(Aria2Exception, ))
 def download_video(self, dir, bvid, pn, cid, desc):
     workdir = os.path.join(dir, "P%d" % pn)
+    if not os.path.exists(workdir):
+        os.makedirs(workdir)
+
     progress_recorder = ProgressRecorder(self)
     videodesc = ' %s P%d %s, cid: %s' % (bvid, pn, desc, cid)
     def report_progress(cur, msg):
@@ -133,13 +136,15 @@ def download_video(self, dir, bvid, pn, cid, desc):
     for i in range(5):
         try:
             r = sess.get(danmakuUrl)
-            if not r.content.startswith("<"):
+            if not r.content.startswith(b"<"):
                 continue
             with open(os.path.join(workdir, "%s-P%d-%s-danmaku.xml" % (bvid, pn, cid)), "wb") as f:
                 f.write(r.content)
             break
         except Exception as e:
-            pass
+            import traceback; traceback.print_exc()
+            if i == 4:
+                raise
 
     headers = '\n'.join([
         'Referer: https://www.bilibili.com/video/%s' % (bvid),
